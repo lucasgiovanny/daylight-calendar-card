@@ -227,6 +227,7 @@ import {
   getCalendarBadgePersonEntityId as getCalendarBadgePersonEntityIdHelper,
   getCalendarColor as getCalendarColorHelper,
   getCalendarName as getCalendarNameHelper,
+  getNextHiddenCalendars,
   getVirtualBadgeById as getVirtualBadgeByIdHelper,
   getVirtualBadgeForEntity as getVirtualBadgeForEntityHelper,
   getVirtualBadgeForEvent as getVirtualBadgeForEventHelper,
@@ -5717,13 +5718,11 @@ class SkylightCalendarCard extends HTMLElement {
           ? this.getVirtualBadgeById(entityId.replace('virtual:', ''))
           : null;
         const targetEntities = virtualBadge ? virtualBadge.entities : [entityId];
-        const allHidden = targetEntities.every((targetEntityId) => this._hiddenCalendars.has(targetEntityId));
-        targetEntities.forEach((targetEntityId) => {
-          if (allHidden) {
-            this._hiddenCalendars.delete(targetEntityId);
-          } else {
-            this._hiddenCalendars.add(targetEntityId);
-          }
+        this._hiddenCalendars = getNextHiddenCalendars({
+          mode: this._config.calendar_badge_click_mode,
+          hiddenCalendars: this._hiddenCalendars,
+          targetEntities,
+          allEntities: this._config.entities || []
         });
         this.persistPreferences();
         this.renderPreservingAgendaScroll();

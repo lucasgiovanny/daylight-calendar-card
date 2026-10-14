@@ -76,6 +76,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_calendars: false,
   hide_header: false,
   hide_calendar_names: false,
+  calendar_badge_click_mode: 'toggle',
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,

@@ -117,6 +117,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   hide_calendars: 'setConfig applies visual layout and styling options',
   hide_header: 'hide_header removes the header wrapper entirely',
   hide_calendar_names: 'setConfig applies visual layout and styling options',
+  calendar_badge_click_mode: 'calendar badge click mode toggles a calendar or shows only that calendar',
   hide_controls: 'calendar render includes header controls and modal container',
   hide_navigation_buttons: 'hide_navigation_buttons hides previous, next, and today controls only',
   hide_add_event_button: 'hide_add_event_button hides add event control only',
@@ -10495,4 +10496,21 @@ test('setupSteppedDateTimeInputs converts 12-hour controls to and from the 24-ho
   assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'PM');
   // The 12-hour hour list never grows extra options.
   assert.equal(endGroup.parts['[data-stepped-part="hour"]'].options.length, 12);
+});
+
+test('calendar badge click mode toggles a calendar or shows only that calendar', async () => {
+  const { getNextHiddenCalendars, normalizeCalendarBadgeClickMode } = await import('./src/calendars/calendar-entities.js');
+  const allEntities = ['calendar.family', 'calendar.work', 'calendar.school'];
+
+  assert.equal(normalizeCalendarBadgeClickMode(undefined), 'toggle');
+  assert.equal(normalizeCalendarBadgeClickMode(' Solo '), 'solo');
+
+  const hiddenAfterToggle = getNextHiddenCalendars({ mode: 'toggle', hiddenCalendars: new Set(), targetEntities: ['calendar.work'], allEntities });
+  assert.deepEqual([...hiddenAfterToggle], ['calendar.work']);
+  assert.deepEqual([...getNextHiddenCalendars({ mode: 'toggle', hiddenCalendars: hiddenAfterToggle, targetEntities: ['calendar.work'], allEntities })], []);
+
+  const solo = getNextHiddenCalendars({ mode: 'solo', hiddenCalendars: new Set(), targetEntities: ['calendar.work', 'calendar.school'], allEntities });
+  assert.deepEqual([...solo], ['calendar.family']);
+  assert.deepEqual([...getNextHiddenCalendars({ mode: 'solo', hiddenCalendars: solo, targetEntities: ['calendar.work', 'calendar.school'], allEntities })], []);
+  assert.deepEqual([...getNextHiddenCalendars({ mode: 'solo', hiddenCalendars: solo, targetEntities: ['calendar.family'], allEntities })].sort(), ['calendar.school', 'calendar.work']);
 });

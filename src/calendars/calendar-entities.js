@@ -140,6 +140,32 @@ export function getWritableCalendars(entities = [], calendarCapabilities = {}) {
   });
 }
 
+export function normalizeCalendarBadgeClickMode(mode) {
+  return typeof mode === 'string' && mode.trim().toLowerCase() === 'solo' ? 'solo' : 'toggle';
+}
+
+export function getNextHiddenCalendars({ mode, hiddenCalendars, targetEntities = [], allEntities = [] }) {
+  const hidden = new Set(hiddenCalendars || []);
+  const targets = targetEntities.filter(Boolean);
+
+  if (normalizeCalendarBadgeClickMode(mode) === 'solo') {
+    const others = allEntities.filter((entityId) => !targets.includes(entityId));
+    const alreadySolo = targets.every((entityId) => !hidden.has(entityId))
+      && others.every((entityId) => hidden.has(entityId));
+    return alreadySolo ? new Set() : new Set(others);
+  }
+
+  const allHidden = targets.every((entityId) => hidden.has(entityId));
+  targets.forEach((entityId) => {
+    if (allHidden) {
+      hidden.delete(entityId);
+    } else {
+      hidden.add(entityId);
+    }
+  });
+  return hidden;
+}
+
 export function getCalendarBadgePersonEntityId(badgeEntityId, calendarPersonEntities = {}) {
   const mappings = calendarPersonEntities || {};
   if (!badgeEntityId) return null;
