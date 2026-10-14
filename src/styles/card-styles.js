@@ -204,6 +204,40 @@ export function getCardStyles() {
         background: var(--header-wrapped-background, transparent);
       }
 
+      /* Fork: a wrapped compact header keeps weather and period controls on one row, badges below. */
+      .header-compact.is-wrapped {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        row-gap: 12px;
+      }
+
+      .header-compact.is-wrapped .compact-header-left {
+        display: contents;
+      }
+
+      .header-compact.is-wrapped .header-title-wrap {
+        order: 1;
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .header-compact.is-wrapped .compact-header-controls {
+        order: 2;
+        width: auto;
+        margin-left: auto;
+        justify-content: flex-end;
+      }
+
+      .header-compact.is-wrapped .compact-period-controls {
+        flex-wrap: nowrap;
+      }
+
+      .header-compact.is-wrapped .calendar-badges-inline {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: flex-start;
+      }
+
       .header.is-wrapped .header-left,
       .header.is-wrapped .header-controls {
         justify-content: center;
