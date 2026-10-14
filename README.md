@@ -1,3 +1,6 @@
+> [!NOTE]
+> Fork of [superdingo101/daylight-calendar-card](https://github.com/superdingo101/daylight-calendar-card) maintained by lucasgiovanny. It adds `calendar_badge_click_mode: solo`, which makes a header badge show only its calendar. Install it in HACS as a custom repository (`https://github.com/lucasgiovanny/daylight-calendar-card`, type Dashboard).
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
 [![GitHub release](https://img.shields.io/github/release/superdingo101/daylight-calendar-card.svg)](https://github.com/superdingo101/daylight-calendar-card/releases)
 [![GitHub stars](https://img.shields.io/github/stars/superdingo101/daylight-calendar-card.svg)](https://github.com/superdingo101/daylight-calendar-card/stargazers)

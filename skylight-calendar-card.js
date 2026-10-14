@@ -109,6 +109,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_calendars: false,
   hide_header: false,
   hide_calendar_names: false,
+  calendar_badge_click_mode: 'toggle',
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
@@ -720,6 +721,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
       { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
       { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'calendar_badge_click_mode', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_click_mode || DEFAULT_CONFIG_VALUES.calendar_badge_click_mode },
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
@@ -1059,7 +1061,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.13.0';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.13.1';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
@@ -2443,6 +2445,12 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
         <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
         <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
+        <label>Header badges: tap
+          <select data-field="calendar_badge_click_mode">
+            <option value="toggle" ${this._config.calendar_badge_click_mode !== 'solo' ? 'selected' : ''}>Show/hide that calendar</option>
+            <option value="solo" ${this._config.calendar_badge_click_mode === 'solo' ? 'selected' : ''}>Show only that calendar</option>
+          </select>
+        </label>
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
@@ -3840,6 +3848,40 @@ function getCardStyles() {
       .header.is-wrapped,
       .header-compact.is-wrapped {
         background: var(--header-wrapped-background, transparent);
+      }
+
+      /* Fork: a wrapped compact header keeps weather and period controls on one row, badges below. */
+      .header-compact.is-wrapped {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        row-gap: 12px;
+      }
+
+      .header-compact.is-wrapped .compact-header-left {
+        display: contents;
+      }
+
+      .header-compact.is-wrapped .header-title-wrap {
+        order: 1;
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .header-compact.is-wrapped .compact-header-controls {
+        order: 2;
+        width: auto;
+        margin-left: auto;
+        justify-content: flex-end;
+      }
+
+      .header-compact.is-wrapped .compact-period-controls {
+        flex-wrap: nowrap;
+      }
+
+      .header-compact.is-wrapped .calendar-badges-inline {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: flex-start;
       }
 
       .header.is-wrapped .header-left,
@@ -11229,6 +11271,32 @@ function getWritableCalendars(entities = [], calendarCapabilities = {}) {
   });
 }
 
+function normalizeCalendarBadgeClickMode(mode) {
+  return typeof mode === 'string' && mode.trim().toLowerCase() === 'solo' ? 'solo' : 'toggle';
+}
+
+function getNextHiddenCalendars({ mode, hiddenCalendars, targetEntities = [], allEntities = [] }) {
+  const hidden = new Set(hiddenCalendars || []);
+  const targets = targetEntities.filter(Boolean);
+
+  if (normalizeCalendarBadgeClickMode(mode) === 'solo') {
+    const others = allEntities.filter((entityId) => !targets.includes(entityId));
+    const alreadySolo = targets.every((entityId) => !hidden.has(entityId))
+      && others.every((entityId) => hidden.has(entityId));
+    return alreadySolo ? new Set() : new Set(others);
+  }
+
+  const allHidden = targets.every((entityId) => hidden.has(entityId));
+  targets.forEach((entityId) => {
+    if (allHidden) {
+      hidden.delete(entityId);
+    } else {
+      hidden.add(entityId);
+    }
+  });
+  return hidden;
+}
+
 function getCalendarBadgePersonEntityId(badgeEntityId, calendarPersonEntities = {}) {
   const mappings = calendarPersonEntities || {};
   if (!badgeEntityId) return null;
@@ -16727,13 +16795,11 @@ class SkylightCalendarCard extends HTMLElement {
           ? this.getVirtualBadgeById(entityId.replace('virtual:', ''))
           : null;
         const targetEntities = virtualBadge ? virtualBadge.entities : [entityId];
-        const allHidden = targetEntities.every((targetEntityId) => this._hiddenCalendars.has(targetEntityId));
-        targetEntities.forEach((targetEntityId) => {
-          if (allHidden) {
-            this._hiddenCalendars.delete(targetEntityId);
-          } else {
-            this._hiddenCalendars.add(targetEntityId);
-          }
+        this._hiddenCalendars = getNextHiddenCalendars({
+          mode: this._config.calendar_badge_click_mode,
+          hiddenCalendars: this._hiddenCalendars,
+          targetEntities,
+          allEntities: this._config.entities || []
         });
         this.persistPreferences();
         this.renderPreservingAgendaScroll();
